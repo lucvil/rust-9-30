@@ -13,6 +13,11 @@ import redirectToAuth from "./helpers/redirect-to-auth.js";
 import { BillingInterval } from "./helpers/ensure-billing.js";
 import { AppInstallations } from "./app_installations.js";
 
+// script_tagのimport
+// 年を変更 2021-10 -> 2022-07
+import {ScriptTag} from '@shopify/shopify-api/dist/rest-resources/2022-07/index.js';
+
+
 const USE_ONLINE_TOKENS = false;
 
 const PORT = parseInt(process.env.BACKEND_PORT || process.env.PORT, 10);
@@ -133,9 +138,25 @@ export async function createServer(
     res.status(status).send({ success: status === 200, error });
   });
 
+
+
   // All endpoints after this point will have access to a request.body
   // attribute, as a result of the express.json() middleware
   app.use(express.json());
+
+   // ここからテスト(9/30)
+  app.get("/api/test", async (req, res) => {
+
+    console.log("aa");
+  
+    // const test_session = await Shopify.Utils.loadCurrentSession(req, res);
+    // const script_tag = new ScriptTag({session: test_session});
+    // script_tag.event = "onload";
+    // script_tag.src = "https://example.com/my_script.js";
+    // await script_tag.save({
+    //   update: true,
+    // });
+  }); 
 
   app.use((req, res, next) => {
     const shop = Shopify.Utils.sanitizeShop(req.query.shop);
