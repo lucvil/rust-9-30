@@ -1,3 +1,4 @@
 # This file stores configurations for your Shopify app.
+# write_script_tagsを追加
 
-scopes = "write_products"
+scopes = "write_products,write_script_tags"

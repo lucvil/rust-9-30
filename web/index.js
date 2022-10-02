@@ -144,18 +144,34 @@ export async function createServer(
   // attribute, as a result of the express.json() middleware
   app.use(express.json());
 
-   // ここからテスト(9/30)
-  app.get("/api/test", async (req, res) => {
-
-    console.log("aa");
+  // ここからテスト(9/30)
   
-    // const test_session = await Shopify.Utils.loadCurrentSession(req, res);
+  app.get("/api/test", async (request, response) => {
+
+
+  
+    const test_session = await Shopify.Utils.loadCurrentSession(
+      request,
+      response,
+      app.get("use-online-tokens")
+    );
+
+    //app.get("use-online-tokens")によりscript_tagが作れるようになる？？
+
+    //新しいscript_tagを作る
     // const script_tag = new ScriptTag({session: test_session});
     // script_tag.event = "onload";
-    // script_tag.src = "https://example.com/my_script.js";
+    // script_tag.src = "https://github.com/lucvil/rust-9-30/blob/master/web/gdpr.js";
     // await script_tag.save({
     //   update: true,
     // });
+
+    //script_tagのlistを得る
+    console.log(await ScriptTag.find({
+      session : test_session,
+      id: 190700716226,
+    }));
+
   }); 
 
   app.use((req, res, next) => {
