@@ -167,10 +167,24 @@ export async function createServer(
     // });
 
     //script_tagのlistを得る
-    console.log(await ScriptTag.find({
-      session : test_session,
-      id: 190700716226,
-    }));
+    // const ans = await ScriptTag.find({
+    //   session : test_session,
+    //   id: 190700716226,
+    // });
+
+    //script_tagのアップデート
+    const script_tag = new ScriptTag({session: test_session});
+    script_tag.id = 190700716226;
+    // script_tag.src = "https://drive.google.com/uc?export=download&id=15XekTa_meVXmaCT4B2jTImY45hD23hIC";
+    script_tag.src = "https://lucvil.github.io/script_tag/test_script.js";
+    script_tag.display_scope = "order_status";
+    await script_tag.save({
+      update: true,
+    });
+
+    console.log(script_tag);
+
+    // response.sendStatus(200).send(ans);
 
   }); 
 
