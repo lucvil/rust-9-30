@@ -3,6 +3,8 @@ import { join } from "path";
 import { readFileSync } from "fs";
 import express from "express";
 import cookieParser from "cookie-parser";
+// import require from "require";
+
 import { Shopify, LATEST_API_VERSION } from "@shopify/shopify-api";
 
 import applyAuthMiddleware from "./middleware/auth.js";
@@ -16,6 +18,9 @@ import { AppInstallations } from "./app_installations.js";
 // script_tagのimport
 // 年を変更 2021-10 -> 2022-07
 import {ScriptTag} from '@shopify/shopify-api/dist/rest-resources/2022-07/index.js';
+
+//11/23 app_proxyの認証のため追記
+// import { verifySignature } from "./utils/app_proxy.ts";
 
 
 const USE_ONLINE_TOKENS = false;
@@ -73,6 +78,10 @@ export async function createServer(
   billingSettings = BILLING_SETTINGS
 ) {
   const app = express();
+  //11/22に追記(./webにて[npm install require]を実行)
+  // var bodyParser = require('body-parser');
+
+  
 
   app.set("use-online-tokens", USE_ONLINE_TOKENS);
   app.use(cookieParser(Shopify.Context.API_SECRET_KEY));
@@ -142,14 +151,19 @@ export async function createServer(
 
   // All endpoints after this point will have access to a request.body
   // attribute, as a result of the express.json() middleware
-  app.use(express.json());
+  app.use(express.json()); 
+
+  //script_tagからの通信
+
+  app.get('/address_kun/test',  async (req, res) => {
+    res.send("hello world");
+  });
 
   // ここからテスト(9/30)
   
   app.get("/api/test", async (request, response) => {
 
-
-  
+    
     const test_session = await Shopify.Utils.loadCurrentSession(
       request,
       response,
