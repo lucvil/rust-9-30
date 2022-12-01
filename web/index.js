@@ -3,7 +3,9 @@ import { join } from "path";
 import { readFileSync } from "fs";
 import express from "express";
 import cookieParser from "cookie-parser";
-// import require from "require";
+
+//11/24追記 
+import bodyParser from "body-parser";
 
 import { Shopify, LATEST_API_VERSION } from "@shopify/shopify-api";
 
@@ -20,7 +22,7 @@ import { AppInstallations } from "./app_installations.js";
 import {ScriptTag} from '@shopify/shopify-api/dist/rest-resources/2022-07/index.js';
 
 //11/23 app_proxyの認証のため追記
-// import { verifySignature } from "./utils/app_proxy.ts";
+// import { myFunction } from "./utils/app_proxy.js";
 
 
 const USE_ONLINE_TOKENS = false;
@@ -78,17 +80,15 @@ export async function createServer(
   billingSettings = BILLING_SETTINGS
 ) {
   const app = express();
-  //11/22に追記(./webにて[npm install require]を実行)
-  // var bodyParser = require('body-parser');
-
-  
 
   app.set("use-online-tokens", USE_ONLINE_TOKENS);
   app.use(cookieParser(Shopify.Context.API_SECRET_KEY));
 
+
   applyAuthMiddleware(app, {
     billing: billingSettings,
   });
+
 
   // Do not call app.use(express.json()) before processing webhooks with
   // Shopify.Webhooks.Registry.process().
@@ -113,6 +113,7 @@ export async function createServer(
       billing: billingSettings,
     })
   );
+
 
   app.get("/api/products/count", async (req, res) => {
     const session = await Shopify.Utils.loadCurrentSession(
@@ -148,22 +149,33 @@ export async function createServer(
   });
 
 
-
   // All endpoints after this point will have access to a request.body
   // attribute, as a result of the express.json() middleware
+  app.use(express.urlencoded({extended: true}));
   app.use(express.json()); 
 
   //script_tagからの通信
-
-  app.get('/address_kun/test',  async (req, res) => {
-    res.send("hello world");
+  //App proxy
+  app.get('/address_kun/test',  async (request, response) => {
+    // const test_session = await Shopify.Utils.loadCurrentSession(
+    //   request,
+    //   response,
+    //   app.get("use-online-tokens")
+    // );
+    
+    //通信の検証
+    console.log("complete");
+    response.set("Content-Type", "application/json");
+    response.status(200).send("Hello");
+    response.end();
   });
+
+
 
   // ここからテスト(9/30)
   
   app.get("/api/test", async (request, response) => {
-
-    
+    console.log("175");
     const test_session = await Shopify.Utils.loadCurrentSession(
       request,
       response,
@@ -189,7 +201,6 @@ export async function createServer(
     //script_tagのアップデート
     const script_tag = new ScriptTag({session: test_session});
     script_tag.id = 190700716226;
-    // script_tag.src = "https://drive.google.com/uc?export=download&id=15XekTa_meVXmaCT4B2jTImY45hD23hIC";
     script_tag.src = "https://lucvil.github.io/script_tag/test_script.js";
     script_tag.display_scope = "order_status";
     await script_tag.save({
@@ -202,7 +213,9 @@ export async function createServer(
 
   }); 
 
+
   app.use((req, res, next) => {
+    console.log("215");
     const shop = Shopify.Utils.sanitizeShop(req.query.shop);
     if (Shopify.Context.IS_EMBEDDED_APP && shop) {
       res.setHeader(
@@ -229,6 +242,7 @@ export async function createServer(
   }
 
   app.use("/*", async (req, res, next) => {
+    
     if (typeof req.query.shop !== "string") {
       res.status(500);
       return res.send("No shop provided");
@@ -258,7 +272,9 @@ export async function createServer(
       .send(readFileSync(htmlFile));
   });
 
+
   return { app };
 }
+
 
 createServer().then(({ app }) => app.listen(PORT));
