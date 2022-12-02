@@ -22,7 +22,7 @@ import { AppInstallations } from "./app_installations.js";
 import {ScriptTag} from '@shopify/shopify-api/dist/rest-resources/2022-07/index.js';
 
 //11/23 app_proxyの認証のため追記
-// import { myFunction } from "./utils/app_proxy.js";
+import { verifySignature } from "./utils/app_proxy.js";
 
 
 const USE_ONLINE_TOKENS = false;
@@ -34,6 +34,8 @@ const DEV_INDEX_PATH = `${process.cwd()}/frontend/`;
 const PROD_INDEX_PATH = `${process.cwd()}/frontend/dist/`;
 
 const DB_PATH = `${process.cwd()}/database.sqlite`;
+
+
 
 Shopify.Context.initialize({
   API_KEY: process.env.SHOPIFY_API_KEY,
@@ -72,6 +74,11 @@ const BILLING_SETTINGS = {
 // More details can be found on shopify.dev:
 // https://shopify.dev/apps/webhooks/configuration/mandatory-webhooks
 setupGDPRWebHooks("/api/webhooks");
+
+
+
+//12/2追記 graphQLのsession 認証
+
 
 // export for test use only
 export async function createServer(
@@ -113,6 +120,13 @@ export async function createServer(
       billing: billingSettings,
     })
   );
+
+  // //address_kunのactive sessionのため
+  // app.use(
+  //   "/address_kun/*",
+  //   verifyRequest(app)
+  // );
+  
 
 
   app.get("/api/products/count", async (req, res) => {
@@ -156,18 +170,54 @@ export async function createServer(
 
   //script_tagからの通信
   //App proxy
-  app.get('/address_kun/test',  async (request, response) => {
-    // const test_session = await Shopify.Utils.loadCurrentSession(
-    //   request,
-    //   response,
-    //   app.get("use-online-tokens")
-    // );
-    
+  app.get('/address_kun/test',  async (req, res) => {
     //通信の検証
-    console.log("complete");
-    response.set("Content-Type", "application/json");
-    response.status(200).send("Hello");
-    response.end();
+    try {
+      verifySignature(req.url,process.env.SHOPIFY_API_SECRET);
+    }catch (error){
+      // signatureの確認が終わるまではshopifyからの呼び出しではないかもしれないので，liquidで返さない
+      res.status(403).send("正しくないリクエストが送信されました");
+      return;
+    }
+
+    // res.set("Content-Type", "application/json");
+
+    const queryString = `{
+      products (first: 3) {
+        edges {
+          node {
+            id
+            title
+          }
+        }
+      }
+    }`
+
+    //GraphQL Admin APIを使うためにaccess token 取得
+    const session = await Shopify.Utils.loadCurrentSession(
+      req,
+      res,
+      app.get("use-online-tokens")
+    );
+    
+
+    console.log(session);
+
+    // const client = new Shopify.Clients.Graphql(
+    //   session.shop,
+    //   session.accessToken
+    // );
+
+    // const graphqlResponse = await client.query({
+    //   data: queryString,
+    // });
+
+    // console.log(graphqlResponse);
+
+    res.status(200).send("Hello");
+    res.end();
+
+    console.log(session);
   });
 
 
@@ -175,7 +225,6 @@ export async function createServer(
   // ここからテスト(9/30)
   
   app.get("/api/test", async (request, response) => {
-    console.log("175");
     const test_session = await Shopify.Utils.loadCurrentSession(
       request,
       response,
@@ -215,7 +264,6 @@ export async function createServer(
 
 
   app.use((req, res, next) => {
-    console.log("215");
     const shop = Shopify.Utils.sanitizeShop(req.query.shop);
     if (Shopify.Context.IS_EMBEDDED_APP && shop) {
       res.setHeader(
