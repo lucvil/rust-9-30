@@ -20,10 +20,11 @@ export const verifySignature = function(url, secret){
     })
     .join("");
 
+
 	const hash = crypto.createHmac("sha256", secret).update(input).digest("hex");
 
 	if (signature !== hash) {
 		throw new Error("正しくないリクエストが送信されました");
 	}
-	return true;
+	return query.shop;
 };

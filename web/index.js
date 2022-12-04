@@ -76,10 +76,6 @@ const BILLING_SETTINGS = {
 setupGDPRWebHooks("/api/webhooks");
 
 
-
-//12/2追記 graphQLのsession 認証
-
-
 // export for test use only
 export async function createServer(
   root = process.cwd(),
@@ -120,14 +116,7 @@ export async function createServer(
       billing: billingSettings,
     })
   );
-
-  // //address_kunのactive sessionのため
-  // app.use(
-  //   "/address_kun/*",
-  //   verifyRequest(app)
-  // );
   
-
 
   app.get("/api/products/count", async (req, res) => {
     const session = await Shopify.Utils.loadCurrentSession(
@@ -170,10 +159,11 @@ export async function createServer(
 
   //script_tagからの通信
   //App proxy
-  app.get('/address_kun/test',  async (req, res) => {
+  app.get('/address_kun/test', async (req, res) => {
     //通信の検証
+    let shop;
     try {
-      verifySignature(req.url,process.env.SHOPIFY_API_SECRET);
+      shop = verifySignature(req.url,process.env.SHOPIFY_API_SECRET);
     }catch (error){
       // signatureの確認が終わるまではshopifyからの呼び出しではないかもしれないので，liquidで返さない
       res.status(403).send("正しくないリクエストが送信されました");
@@ -182,42 +172,38 @@ export async function createServer(
 
     // res.set("Content-Type", "application/json");
 
-    const queryString = `{
-      products (first: 3) {
-        edges {
-          node {
-            id
-            title
-          }
+    //should complete query
+    const queryString = `mutation orderUpdate($input: OrderInput!){
+      orderUpdate(input: $input){
+        order {
+
+        }
+        userErrors {
+          message
+          field
         }
       }
     }`
 
     //GraphQL Admin APIを使うためにaccess token 取得
-    const session = await Shopify.Utils.loadCurrentSession(
-      req,
-      res,
-      app.get("use-online-tokens")
-    );
+    //shopが必ず来るとは限らないので例外処理が必要かも
+    const session = await Shopify.Utils.loadOfflineSession(shop);
     
 
-    console.log(session);
+    const client = new Shopify.Clients.Graphql(
+      session.shop,
+      session.accessToken
+    );
 
-    // const client = new Shopify.Clients.Graphql(
-    //   session.shop,
-    //   session.accessToken
-    // );
+    const graphqlResponse = await client.query({
+      data: queryString,
+    });
 
-    // const graphqlResponse = await client.query({
-    //   data: queryString,
-    // });
-
-    // console.log(graphqlResponse);
+    console.log(graphqlResponse.body.data.products.edges);
 
     res.status(200).send("Hello");
     res.end();
 
-    console.log(session);
   });
 
 
@@ -230,6 +216,7 @@ export async function createServer(
       response,
       app.get("use-online-tokens")
     );
+
 
     //app.get("use-online-tokens")によりscript_tagが作れるようになる？？
 
@@ -255,10 +242,6 @@ export async function createServer(
     await script_tag.save({
       update: true,
     });
-
-    console.log(script_tag);
-
-    // response.sendStatus(200).send(ans);
 
   }); 
 

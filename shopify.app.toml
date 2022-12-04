@@ -1,4 +1,4 @@
 # This file stores configurations for your Shopify app.
 # write_script_tagsを追加
 # read_customersを追加、script_tagにてCustomerオブジェクトにアクセスするためだったがうまく行かず
-scopes = "write_products,write_script_tags,read_customers"
+scopes = "write_products,write_script_tags,read_customers,write_orders"
