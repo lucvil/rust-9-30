@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 
 //11/24追記 
 import bodyParser from "body-parser";
+import queryString from "query-string";
 
 import { Shopify, LATEST_API_VERSION } from "@shopify/shopify-api";
 
@@ -34,7 +35,6 @@ const DEV_INDEX_PATH = `${process.cwd()}/frontend/`;
 const PROD_INDEX_PATH = `${process.cwd()}/frontend/dist/`;
 
 const DB_PATH = `${process.cwd()}/database.sqlite`;
-
 
 
 Shopify.Context.initialize({
@@ -157,37 +157,35 @@ export async function createServer(
   app.use(express.urlencoded({extended: true}));
   app.use(express.json()); 
 
+
+
   //script_tagからの通信
-  //App proxy
-  app.get('/address_kun/test', async (req, res) => {
+  app.get('/address_kun/search_address', async (req, res) => {
     //通信の検証
-    let shop;
     try {
-      shop = verifySignature(req.url,process.env.SHOPIFY_API_SECRET);
+      verifySignature(req.url,process.env.SHOPIFY_API_SECRET);
     }catch (error){
       // signatureの確認が終わるまではshopifyからの呼び出しではないかもしれないので，liquidで返さない
       res.status(403).send("正しくないリクエストが送信されました");
       return;
     }
 
-    // res.set("Content-Type", "application/json");
+    const qs = req.url.match(/\?(.*)/);
+    const AppProxyData = queryString.parse((qs && qs[1]) || "");
 
-    //should complete query
-    const queryString = `mutation orderUpdate($input: OrderInput!){
-      orderUpdate(input: $input){
-        order {
-
-        }
-        userErrors {
-          message
-          field
-        }
+    //graphql query
+    const graphqlQueryString = `{
+      order(id: `+ `"gid://shopify/Order/` + AppProxyData.order_id + `"` + `){
+        shippingAddress{
+          city
+          address1
+        }        
       }
-    }`
+    }`;
 
     //GraphQL Admin APIを使うためにaccess token 取得
     //shopが必ず来るとは限らないので例外処理が必要かも
-    const session = await Shopify.Utils.loadOfflineSession(shop);
+    const session = await Shopify.Utils.loadOfflineSession(AppProxyData.shop);
     
 
     const client = new Shopify.Clients.Graphql(
@@ -196,54 +194,142 @@ export async function createServer(
     );
 
     const graphqlResponse = await client.query({
-      data: queryString,
+      data: {
+        "query": graphqlQueryString
+      }
     });
 
-    console.log(graphqlResponse.body.data.products.edges);
+    var sendText = graphqlResponse.body.data.order.shippingAddress.city + graphqlResponse.body.data.order.shippingAddress.address1;
+    res.status(200).send(sendText);
+    res.end();
+  });
+
+
+  //App proxy
+  app.get('/address_kun/change_address', async (req, res) => {
+    //通信の検証
+    try {
+      verifySignature(req.url,process.env.SHOPIFY_API_SECRET);
+    }catch (error){
+      // signatureの確認が終わるまではshopifyからの呼び出しではないかもしれないので，liquidで返さない
+      res.status(403).send("正しくないリクエストが送信されました");
+      return;
+    }
+
+    const qs = req.url.match(/\?(.*)/);
+    const AppProxyData = queryString.parse((qs && qs[1]) || "");
+
+    //graphql query
+    const graphqlQueryString = `mutation orderUpdate($input: OrderInput!){
+      orderUpdate(input: $input){
+        order {
+          id
+          shippingAddress{
+            city
+            address1
+            address2
+          }
+        }
+        userErrors {
+          message
+          field
+        }
+      }
+    }`;
+
+    const graphqlQueryVariables = {
+      "input": {
+        "id": "gid://shopify/Order/" + AppProxyData.order_id,
+        "shippingAddress": {
+          "city": AppProxyData.city,
+          "address1": AppProxyData.address1,
+          "address2": AppProxyData.address2
+        }
+      }
+    };
+
+
+    //GraphQL Admin APIを使うためにaccess token 取得
+    //shopが必ず来るとは限らないので例外処理が必要かも
+    const session = await Shopify.Utils.loadOfflineSession(AppProxyData.shop);
+    
+
+    const client = new Shopify.Clients.Graphql(
+      session.shop,
+      session.accessToken
+    );
+
+    const graphqlResponse = await client.query({
+      data: {
+        "query": graphqlQueryString,
+        "variables": graphqlQueryVariables,
+      }
+    });
+
+    // console.log(graphqlResponse.body.data.orderUpdate);
 
     res.status(200).send("Hello");
     res.end();
 
   });
 
+  // return scriptTag
+  app.get('/address_kun/return_script_tag', async(req, res) => {
+    //通信の検証
+    try {
+      verifySignature(req.url,process.env.SHOPIFY_API_SECRET);
+    }catch (error){
+      // signatureの確認が終わるまではshopifyからの呼び出しではないかもしれないので，liquidで返さない
+      res.status(403).send("正しくないリクエストが送信されました");
+      return;
+    }
+
+    //web/script_tag/script_tag.jsを返す
+    res.contentType("text/javascript");
+    res.sendFile(join(`${process.cwd()}`, `script_tag/script_tag.js`));
+
+  });
 
 
-  // ここからテスト(9/30)
-  
-  app.get("/api/test", async (request, response) => {
+  //ScriptTag挿入 
+  app.get("/api/script_tag_insert", async (request, response) => {
     const test_session = await Shopify.Utils.loadCurrentSession(
       request,
       response,
       app.get("use-online-tokens")
     );
 
+    const qs = request.url.match(/\?(.*)/);
+    const AppProxyData = queryString.parse((qs && qs[1]) || "");
 
-    //app.get("use-online-tokens")によりscript_tagが作れるようになる？？
 
-    //新しいscript_tagを作る
-    // const script_tag = new ScriptTag({session: test_session});
-    // script_tag.event = "onload";
-    // script_tag.src = "https://github.com/lucvil/rust-9-30/blob/master/web/gdpr.js";
-    // await script_tag.save({
-    //   update: true,
-    // });
+    //ScriptTagのlistを取得しsrcと同じScriptTagがなければ挿入    
+    // const src = "https://lucvil.github.io/script_tag/test_script.js";
+    const src = "https://" + AppProxyData.shop + "/apps/address/return_script_tag";
+    let scriptTagExist = false;
 
-    //script_tagのlistを得る
-    // const ans = await ScriptTag.find({
-    //   session : test_session,
-    //   id: 190700716226,
-    // });
-
-    //script_tagのアップデート
-    const script_tag = new ScriptTag({session: test_session});
-    script_tag.id = 190700716226;
-    script_tag.src = "https://lucvil.github.io/script_tag/test_script.js";
-    script_tag.display_scope = "order_status";
-    await script_tag.save({
-      update: true,
+    //shopify.rest.ScriptTag -> ScriptTag
+    const scriptTagList =  await ScriptTag.all({
+      session: test_session,
     });
 
-  }); 
+    scriptTagList.map((scriptTagItem) => {
+      if(scriptTagItem.src == src){
+        scriptTagExist = true;
+      }
+    });
+
+
+    if(!scriptTagExist){
+      //新しいScriptTagを作る
+      const script_tag = new ScriptTag({session: test_session});
+      script_tag.event = "onload";
+      script_tag.src = src;
+      await script_tag.save({
+        update: true,
+      });
+    }
+  });
 
 
   app.use((req, res, next) => {

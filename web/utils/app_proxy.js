@@ -8,7 +8,7 @@ export const verifySignature = function(url, secret){
 	const query = queryString.parse((qs && qs[1]) || "");
 
 
-	// 計算結果のsignatureを除いたqueryparamで計算して，比較する
+	// 計算結果のsignatureを除いたqueryparamaterで計算して，比較する
 	const signature = query.signature || "";
 	delete query.signature;
 	const input = Object.keys(query)
@@ -26,5 +26,5 @@ export const verifySignature = function(url, secret){
 	if (signature !== hash) {
 		throw new Error("正しくないリクエストが送信されました");
 	}
-	return query.shop;
+	return;
 };

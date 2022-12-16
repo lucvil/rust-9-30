@@ -57,10 +57,20 @@ export default function HomePage() {
     and include the empty state contents set above.
   */
 
-  
-  // ここからweb/index.jsの/qpi/test/の関数に飛ぶ。
+  //app管理画面からshopify storeのurlを取得する
+  function getParam(name, url) {
+    if (!url) url = window.location.href;
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+    results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+  }
+
+  // ここからweb/index.jsの/api/script_tag_insert/の関数に飛ぶ。
   useAppQuery({
-    url: "/api/test",
+    url: "/api/script_tag_insert?shop="+getParam('shop'),
   });
 
   
