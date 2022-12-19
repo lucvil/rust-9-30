@@ -5,9 +5,15 @@ import {
   Layout,
   Page,
   SkeletonBodyText,
+  SettingToggle,
+  Button
 } from "@shopify/polaris";
 
+import {useState, useCallback} from 'react';
+
 import { useAppQuery } from "../hooks";
+
+let isFirst = true;
 
 export default function HomePage() {
   /*
@@ -18,45 +24,10 @@ export default function HomePage() {
   const navigate = useNavigate();
 
   /*
-    These are mock values. Setting these values lets you preview the loading markup and the empty state.
-  */
-  const isLoading = false;
-  const isRefetching = false;
-  const QRCodes = [];
-
-  /* loadingMarkup uses the loading component from AppBridge and components from Polaris  */
-  const loadingMarkup = isLoading ? (
-    <Card sectioned>
-      <Loading />
-      <SkeletonBodyText />
-    </Card>
-  ) : null;
-
-  /* Use Polaris Card and EmptyState components to define the contents of the empty state */
-  const emptyStateMarkup =
-    !isLoading && !QRCodes?.length ? (
-      <Card sectioned>
-        <EmptyState
-          heading="Create unique QR codes for your product"
-          /* This button will take the user to a Create a QR code page */
-          action={{
-            content: "Create QR code",
-            onAction: () => navigate("/qrcodes/new"),
-          }}
-          image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-        >
-          <p>
-            Allow customers to scan codes and buy products using their phones.
-          </p>
-        </EmptyState>
-      </Card>
-    ) : null;
-
-  /*
     Use Polaris Page and TitleBar components to create the page layout,
     and include the empty state contents set above.
-  */
-
+  */  
+  
   //app管理画面からshopify storeのurlを取得する
   function getParam(name, url) {
     if (!url) url = window.location.href;
@@ -68,25 +39,80 @@ export default function HomePage() {
     return decodeURIComponent(results[2].replace(/\+/g, " "));
   }
 
-  // ここからweb/index.jsの/api/script_tag_insert/の関数に飛ぶ。
-  useAppQuery({
-    url: "/api/script_tag_insert?shop="+getParam('shop'),
-  });
+  let [active, setActive]= useState(null);
 
+  //普段はloadingとsuccessで2回くるが、reactQueryOptionsのonSuccessをつけるとloadingしかSuccess中の関数を実行してくれない？
+  const {
+    data,
+    isSuccess,
+  } = useAppQuery({
+    url: "/api/script_tag_check?shop="+getParam('shop'),
+  });
   
+  //ボタンの初期設定
+  if(isFirst && data != undefined){
+    setActive(data.scriptTagExist);
+    isFirst = false;
+  }
+
+  //setActiveではすぐに読み込み直しはされず、以下も実行されるためactiveの初期値nullのままの時はif文に入らない。
+  //useAppQueryの数は常に同じでないといけないためelse文の中で何もしないuseAppQueryを入れている。
+  if(!isFirst && active != null){
+    if(active){
+      //scriptTagを追加
+      useAppQuery({
+        url: "/api/script_tag_insert?shop="+getParam('shop'),
+      });
+    }else{
+      //scriptTagを削除
+      useAppQuery({
+        url: "/api/script_tag_delete?shop="+getParam('shop'),
+      });
+    }
+  }else{
+    useAppQuery({
+      url: "/api/script_tag_do_nothing",
+    });
+  }
+  
+
+  function SettingScriptTagToggle() {
+
+    const handleToggle = useCallback(() => {
+      setActive((active) => !active);
+      //activeは即座に反映されず、setActiveで再描画が行われた後に更新される。
+    }, []);
+  
+    const contentStatus = active ? '無効にする' : '有効にする';
+    const textStatus = active ? '有効' : '無効';
+    
+    if(isSuccess){
+      return (
+        <SettingToggle
+          action={{
+            content: contentStatus,
+            onAction: handleToggle,
+          }}
+          enabled={active}
+        >
+          住所変更アプリは<b>{textStatus}</b>になっています。
+        </SettingToggle>
+      );
+    }
+  }
+
   return (
     <Page>
-      <TitleBar
+      {/* <TitleBar
         title="test_botton"
         primaryAction={{
           content: "test_botton",
           onAction: () => pass,
         }}
-      />
+      /> */}
       <Layout>
         <Layout.Section>
-          {loadingMarkup}
-          {emptyStateMarkup}
+          {SettingScriptTagToggle()}
         </Layout.Section>
       </Layout>
     </Page>

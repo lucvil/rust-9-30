@@ -298,6 +298,41 @@ export async function createServer(
 
   });
 
+  //scritTagが挿入されているか確認
+  app.get("/api/script_tag_check", async (request, response) => {
+    const test_session = await Shopify.Utils.loadCurrentSession(
+      request,
+      response,
+      app.get("use-online-tokens")
+    );
+
+    const qs = request.url.match(/\?(.*)/);
+    const AppProxyData = queryString.parse((qs && qs[1]) || "");
+
+
+    //ScriptTagのlistを取得しsrcと同じScriptTagがなければ挿入    
+    // const src = "https://lucvil.github.io/script_tag/test_script.js";
+    const src = "https://" + AppProxyData.shop + "/apps/address/return_script_tag";
+    let scriptTagExist = false;
+
+    //shopify.rest.ScriptTag -> ScriptTag
+    const scriptTagList =  await ScriptTag.all({
+      session: test_session,
+    });
+
+    scriptTagList.map((scriptTagItem) => {
+      if(scriptTagItem.src == src){
+        scriptTagExist = true;
+      }
+    });
+
+    let responseData = {
+      "scriptTagExist": scriptTagExist
+    }
+
+    response.status(200).send(responseData);
+  });
+
   //ScriptTag挿入 
   app.get("/api/script_tag_insert", async (request, response) => {
     const test_session = await Shopify.Utils.loadCurrentSession(
@@ -308,7 +343,6 @@ export async function createServer(
 
     const qs = request.url.match(/\?(.*)/);
     const AppProxyData = queryString.parse((qs && qs[1]) || "");
-
 
     //ScriptTagのlistを取得しsrcと同じScriptTagがなければ挿入    
     // const src = "https://lucvil.github.io/script_tag/test_script.js";
@@ -336,8 +370,56 @@ export async function createServer(
         update: true,
       });
     }
+
+    //useAppQueryでresponse.json()を行うためjsonっぽいデータを返す。
+    response.status(200).send("{}");
   });
 
+  //ScriptTag削除
+  app.get("/api/script_tag_delete", async (request, response) => {
+    const test_session = await Shopify.Utils.loadCurrentSession(
+      request,
+      response,
+      app.get("use-online-tokens")
+    );
+
+    const qs = request.url.match(/\?(.*)/);
+    const AppProxyData = queryString.parse((qs && qs[1]) || "");
+
+
+    //ScriptTagのlistを取得しsrcと同じScriptTagがなければ挿入    
+    // const src = "https://lucvil.github.io/script_tag/test_script.js";
+    const src = "https://" + AppProxyData.shop + "/apps/address/return_script_tag";
+    let scriptTagExist = false;
+
+    //shopify.rest.ScriptTag -> ScriptTag
+    const scriptTagList =  await ScriptTag.all({
+      session: test_session,
+    });
+
+    let scriptTagIdList = [];
+
+    scriptTagList.map((scriptTagItem) => {
+      if(scriptTagItem.src == src){
+        scriptTagIdList.push(scriptTagItem.id);
+        scriptTagExist = true;
+      }
+    });
+
+    scriptTagIdList.map((scriptTagIdItem) => {
+      ScriptTag.delete({
+        session: test_session,
+        id: scriptTagIdItem,
+      });
+    });
+
+    response.status(200).send("{}");
+  });
+
+  //ScriptTagに対して何もしない。
+  app.get("/api/script_tag_do_nothing", async(request, response) => {
+    response.status(200).send("{}");
+  });
 
   app.use((req, res, next) => {
     const shop = Shopify.Utils.sanitizeShop(req.query.shop);
