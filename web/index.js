@@ -179,6 +179,7 @@ export async function createServer(
         shippingAddress{
           city
           address1
+          address2
         }        
       }
     }`;
@@ -200,10 +201,17 @@ export async function createServer(
     });
 
     var sendText = graphqlResponse.body.data.order.shippingAddress.city + graphqlResponse.body.data.order.shippingAddress.address1;
-    res.status(200).send(sendText);
+    
+    res.status(200);
+    res.contentType("aplication","application/json");
+    sendText = {
+      city: graphqlResponse.body.data.order.shippingAddress.city,
+      address1: graphqlResponse.body.data.order.shippingAddress.address1,
+      address2: graphqlResponse.body.data.order.shippingAddress.address2
+    };
+    res.send(JSON.stringify(sendText));
     res.end();
   });
-
 
   //App proxy
   app.get('/address_kun/change_address', async (req, res) => {
@@ -289,7 +297,6 @@ export async function createServer(
     res.sendFile(join(`${process.cwd()}`, `script_tag/script_tag.js`));
 
   });
-
 
   //ScriptTag挿入 
   app.get("/api/script_tag_insert", async (request, response) => {
