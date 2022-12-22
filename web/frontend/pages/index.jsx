@@ -5,6 +5,9 @@ import {
   Layout,
   Page,
   SettingToggle,
+  Button,
+  ButtonGroup,
+  AutoSelection,
 } from "@shopify/polaris";
 
 import {
@@ -23,6 +26,8 @@ import { Line } from 'react-chartjs-2';
 import {useState, useCallback} from 'react';
 
 import { useAppQuery } from "../hooks";
+
+import checkRecord from "../../record/record.json";
 
 let isFirst = true;
 
@@ -124,38 +129,155 @@ export default function HomePage() {
     }
   }
 
+  
+  const [isDayButtonActive, setIsDayButtonActive] = useState(true);
+
+  function getDateStr(Date){
+    return Date.getFullYear() + "/" + (Date.getMonth() + 1) + "/" + Date.getDate();
+  } 
+
+  function getMonthStr(Date){
+    return Date.getFullYear() + "/" + (Date.getMonth() + 1);
+  }
+
   // チェック件数の折れ線グラフ
   function CheckCountChart(){
+  
+    //todayを今日の23:59:59とする
+    const today = new Date();
+    today.setHours(23);
+    today.setMinutes(59);
+    today.setMinutes(59);
+
+    const chartYear = today.getFullYear();
+    const chartMonth = today.getMonth() + 1; //本当の月
+
+
+    //グラフデータの作成(初期設定)
+    let labels,chartData,chartRangeText;
+    if(isDayButtonActive){
+      //デイリーデータ
+      let thisDay = new Date(chartYear, chartMonth - 1,1,0,0,0);
+      let chartLabelsFull = [];
+      for(let i = 0; i < 31; i++){
+        if(thisDay <= today && thisDay.getFullYear() == chartYear && thisDay.getMonth() == chartMonth - 1){
+          chartLabelsFull.push(getDateStr(thisDay));
+        }
+        thisDay.setDate(thisDay.getDate() + 1);
+      }
+
+      labels = chartLabelsFull.map(x => x.replace(String(chartYear) + '/', ''));
+      chartData = chartLabelsFull.map(x => checkRecord[x]);
+      chartRangeText="過去31日間 " +getDateStr(new Date(chartYear,chartMonth-1,1)) + "〜" + getDateStr(new Date(chartYear,chartMonth,0)) 
+    }else{
+      //マンスリーデータ
+      let thisDay = new Date(chartYear, 0,1,0,0,0);
+      let chartLabelsFull = []
+      for(let month = 0; month < 12; month++){
+        if(thisDay <= today){
+          chartLabelsFull.push(getMonthStr(thisDay));
+        }
+        thisDay.setMonth(thisDay.getMonth() + 1);
+      }
+      
+      labels = chartLabelsFull.map(x => x.replace(String(chartYear) + '/', '') + "月");
+      chartData = []
+      for(let i = 0; i < labels.length; i++){
+        let isExist = false;
+        let monthSum = 0;
+        for(let key in checkRecord){
+          if(key.startsWith( String(chartYear) + "/" + String(i+1) + "/" )){
+            monthSum += checkRecord[key];
+            isExist = true;
+          }
+        }
+
+        let thisMonth = (isExist) ? monthSum : undefined;
+        chartData.push(thisMonth)
+      }
+      chartRangeText = "過去1年間 " + chartYear + "/1〜" + chartYear + "/12";
+    }
+
+
+    //ボタンの関数
+    //ボタンを押した時のみ動く
+    const handleDayButtonClick = useCallback(() => {
+      if (isDayButtonActive) return;
+      setIsDayButtonActive(true);
+    }, [isDayButtonActive]);
+  
+    const handleMonthButtonClick = useCallback(() => {
+      if (!isDayButtonActive) return;
+      setIsDayButtonActive(false);
+    }, [isDayButtonActive]);
+
+
+
     const options = {
       responsive: true,
       plugins: {
         legend: {
           position: 'top',
         },
-        title: {
-          display: true,
-          text: 'Chart.js Line Chart',
-        },
+        // title: {
+        //   display: false,
+        //   text: 'Chart.js Line Chart',
+        // },
       },
+      scales: {
+        y: {
+          suggestedMin: 0,
+        }
+      }
     };
+    
 
-    const labels = ['January', 'February', 'March', 'April', 'May', 'June', 'July'];
-
-    const data = {
+    let data = {
       labels,
       datasets: [
         {
-          label: 'Dataset 1',
-          data: labels.map(() => 550),
-          borderColor: 'rgb(255, 99, 132)',
-          backgroundColor: 'rgba(255, 99, 132, 0.5)',
+          label: "アドレス変更件数",
+          data: chartData,
+          borderColor: 'rgba(59, 98, 121, 1)',
+          backgroundColor: 'rgba(59, 98, 121, 1)',
+          pointBorderWidth: 3,
+          borderWidth: 1,
+          // borderColor: 'rgb(255, 99, 132)',
+          // backgroundColor: 'rgba(255, 99, 132, 0.5)',
         },
       ],
     };
 
     return (
-      <Line options={options} data={data} />
+      <div style={{marginTop: 2+"em"}}>
+        <div className="clearfix">
+          <div style={{height: 3+"em",float: "left"}}> 
+              <p style={{lineHeight:2 + "em",fontSize: 20+"px"}}><b>チェック件数</b></p>
+          </div>
+          <div style={{float: "right"}}>
+            <ButtonGroup segmented>
+              <Button pressed={isDayButtonActive} onClick={handleDayButtonClick}>
+                デイリー
+              </Button>
+              <Button pressed={!isDayButtonActive} onClick={handleMonthButtonClick}>
+                マンスリー
+              </Button>
+            </ButtonGroup>
+          </div>
+          <div style={{height: 3+"em",float: "right",marginRight: 2+"em"}}>
+            <p style={{lineHeight:3 + "em"}}>{chartRangeText}</p>
+          </div>
+        </div>
+        <div style={{height: 4+"em"}}>
+        </div>
+        <Card>
+          <div style={{alignItems: "center",paddingTop:2+"em" ,paddingBottom: 2+"em",paddingLeft:3+"em",paddingRight:0+"em",}}>
+            <Line options={options} data={data}/>
+          </div>
+        </Card>
+      </div>
     );
+
   }
 
 

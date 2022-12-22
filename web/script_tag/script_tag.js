@@ -168,7 +168,7 @@ function makeDialog(addressInDatabaseJson){
 								</div>
 								<div hidden class="Polaris-Labelled__HelpText" id="PolarisTextField3HelpText">
 									<span class="Polaris-Text--root Polaris-Text--bodyMd Polaris-Text--regular Polaris-Text--break Polaris-Text--subdued">
-										<span style="color: var(--p-text-critical)">建物名、部屋番号などを日本語で入力してください</span>
+										<span style="color: var(--p-text-critical)">建物名、部屋番号などを入力してください</span>
 									</span>
 								</div>
 							</div>
@@ -262,7 +262,7 @@ function makeDialog(addressInDatabaseJson){
 				helpText2.hidden = true;
 				inputTextField2.classList.remove("Polaris-TextField--error");
 			}
-			if(window.Shopify.checkout.shipping_address.address2 != null && (inputFormData.get('address2').trim() == '' || notIncludeJa(inputFormData.get('address2').trim()))){
+			if(window.Shopify.checkout.shipping_address.address2 != null && (inputFormData.get('address2').trim() == '' /*|| notIncludeJa(inputFormData.get('address2').trim() )*/)){
 				helpText3.hidden = false;
 				inputTextField3.classList.add("Polaris-TextField--error");
 				errorFlag = true;
