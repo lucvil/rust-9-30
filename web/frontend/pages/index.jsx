@@ -27,7 +27,7 @@ import {useState, useCallback} from 'react';
 
 import { useAppQuery } from "../hooks";
 
-import checkRecord from "../../record/record.json";
+import changedRecord from "../../record/changed_record.json";
 
 let isFirst = true;
 
@@ -147,8 +147,7 @@ export default function HomePage() {
     const today = new Date();
     today.setHours(23);
     today.setMinutes(59);
-    today.setMinutes(59);
-
+    today.setSeconds(59);
     const chartYear = today.getFullYear();
     const chartMonth = today.getMonth() + 1; //本当の月
 
@@ -167,8 +166,8 @@ export default function HomePage() {
       }
 
       labels = chartLabelsFull.map(x => x.replace(String(chartYear) + '/', ''));
-      chartData = chartLabelsFull.map(x => checkRecord[x]);
-      chartRangeText="過去31日間 " +getDateStr(new Date(chartYear,chartMonth-1,1)) + "〜" + getDateStr(new Date(chartYear,chartMonth,0)) 
+      chartData = chartLabelsFull.map(x => changedRecord[x]);
+      chartRangeText="過去1ヶ月間 " +getDateStr(new Date(chartYear,chartMonth-1,1)) + "〜" + getDateStr(new Date(chartYear,chartMonth,0)) 
     }else{
       //マンスリーデータ
       let thisDay = new Date(chartYear, 0,1,0,0,0);
@@ -185,9 +184,9 @@ export default function HomePage() {
       for(let i = 0; i < labels.length; i++){
         let isExist = false;
         let monthSum = 0;
-        for(let key in checkRecord){
+        for(let key in changedRecord){
           if(key.startsWith( String(chartYear) + "/" + String(i+1) + "/" )){
-            monthSum += checkRecord[key];
+            monthSum += changedRecord[key];
             isExist = true;
           }
         }

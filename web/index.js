@@ -7,6 +7,8 @@ import cookieParser from "cookie-parser";
 //11/24追記 
 import bodyParser from "body-parser";
 import queryString from "query-string";
+import fs from "fs";
+import path from "path";
 
 import { Shopify, LATEST_API_VERSION } from "@shopify/shopify-api";
 
@@ -274,10 +276,29 @@ export async function createServer(
       }
     });
 
-    // console.log(graphqlResponse.body.data.orderUpdate);
-
     res.status(200).send("Hello");
     res.end();
+
+    // console.log(graphqlResponse.body.data.orderUpdate);
+
+    //changed_recordに記録
+    let changedRecord = JSON.parse(
+      fs.readFileSync(join(`${process.cwd()}`, `record/changed_record.json`)).toString()
+    );
+
+    const today = new Date();
+    const recordKey = today.getFullYear() + "/" + (today.getMonth() + 1) + "/" + today.getDate();
+    if(changedRecord[recordKey] == undefined){
+      changedRecord[recordKey] = 1;
+    }else{
+      changedRecord[recordKey] += 1;
+    }
+
+    fs.writeFileSync(
+      join(`${process.cwd()}`, `record/changed_record.json`),
+      JSON.stringify(changedRecord,null,4)
+    );
+
 
   });
 
