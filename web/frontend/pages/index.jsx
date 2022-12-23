@@ -140,6 +140,8 @@ export default function HomePage() {
     return Date.getFullYear() + "/" + (Date.getMonth() + 1);
   }
 
+
+
   // チェック件数の折れ線グラフ
   function CheckCountChart(){
   
@@ -270,7 +272,7 @@ export default function HomePage() {
         <div style={{height: 4+"em"}}>
         </div>
         <Card>
-          <div style={{alignItems: "center",paddingTop:2+"em" ,paddingBottom: 2+"em",paddingLeft:3+"em",paddingRight:0+"em",}}>
+          <div style={{alignItems: "center",paddingTop:2+"em" ,paddingBottom: 2+"em",paddingLeft:4+"em",paddingRight:1+"em",}}>
             <Line options={options} data={data}/>
           </div>
         </Card>
