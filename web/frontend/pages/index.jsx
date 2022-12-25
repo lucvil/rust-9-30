@@ -292,13 +292,4 @@ export default function HomePage() {
       </Layout>
     </Page>
   );
-
-
-        {/* <TitleBar
-        title="test_botton"
-        primaryAction={{
-          content: "test_botton",
-          onAction: () => pass,
-        }}
-      /> */}
 }

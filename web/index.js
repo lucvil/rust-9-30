@@ -9,6 +9,7 @@ import bodyParser from "body-parser";
 import queryString from "query-string";
 import fs from "fs";
 import path from "path";
+import cron from "node-cron";
 
 import { Shopify, LATEST_API_VERSION } from "@shopify/shopify-api";
 
@@ -299,7 +300,6 @@ export async function createServer(
       JSON.stringify(changedRecord,null,4)
     );
 
-
   });
 
   // return scriptTag
@@ -503,5 +503,24 @@ export async function createServer(
   return { app };
 }
 
+//毎日0:01にrecordに0データを追加
+//アプリがその日に一件も変更しなくても件数0というデータを残しておく
+cron.schedule('0 1 0 * * *', () => {
+    //changed_recordに記録
+    let changedRecord = JSON.parse(
+      fs.readFileSync(join(`${process.cwd()}`, `record/changed_record.json`)).toString()
+    );
+
+    const today = new Date();
+    const recordKey = today.getFullYear() + "/" + (today.getMonth() + 1) + "/" + today.getDate();
+    if(changedRecord[recordKey] == undefined){
+      changedRecord[recordKey] = 0;
+    }
+
+    fs.writeFileSync(
+      join(`${process.cwd()}`, `record/changed_record.json`),
+      JSON.stringify(changedRecord,null,4)
+    );
+})
 
 createServer().then(({ app }) => app.listen(PORT));

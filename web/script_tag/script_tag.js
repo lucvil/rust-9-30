@@ -26,12 +26,6 @@ function notIncludeJa(text) {
 	}
 }
 
-//Polarisを使うためのcssを入手する
-var polarisCss=document.createElement("link");
-polarisCss.setAttribute("rel","stylesheet");
-polarisCss.setAttribute("type","text/css");
-polarisCss.setAttribute("href","https://unpkg.com/@shopify/polaris@9.24.0/build/esm/styles.css");
-document.getElementsByTagName("head")[0].appendChild(polarisCss);
 
 var sendSearchRequest = new XMLHttpRequest();
 var addressInDatabase = "";
@@ -51,8 +45,18 @@ sendSearchRequest.open('GET',sendToSearchUrl);
 sendSearchRequest.send();
 
 function makeDialog(addressInDatabaseJson){
+
 	addressInDatabase = addressInDatabaseJson.city + addressInDatabaseJson.address1;
+	
 	if(window.Shopify.checkout.billing_address.country_code  == "JP" && notIncludeJa(addressInDatabase)) {
+
+		//Polarisを使うためのcssを入手する
+		var polarisCss=document.createElement("link");
+		polarisCss.setAttribute("rel","stylesheet");
+		polarisCss.setAttribute("type","text/css");
+		polarisCss.setAttribute("href","https://unpkg.com/@shopify/polaris@9.24.0/build/esm/styles.css");
+		document.getElementsByTagName("head")[0].appendChild(polarisCss);
+
 		Shopify.Checkout.OrderStatus.addContentBox(
 			`<dialog id="inputDialog" class="Polaris-Card" style="border: 1px solid #E6E6E6; border-radius: 12px; z-index: 1;">
 				<div class="Polaris-Banner Polaris-Banner--statusInfo Polaris-Banner--hasDismiss Polaris-Banner--withinPage" tabindex="0" role="status" aria-live="polite" aria-labelledby="PolarisBanner1Heading" aria-describedby="PolarisBanner1Content">
