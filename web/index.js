@@ -22,8 +22,9 @@ import { BillingInterval } from "./helpers/ensure-billing.js";
 import { AppInstallations } from "./app_installations.js";
 
 // script_tagのimport
-// 年を変更 2021-10 -> 2022-07
-import {ScriptTag} from '@shopify/shopify-api/dist/rest-resources/2022-07/index.js';
+// 年を変更 2021-10 -> 2022-10
+//最新のものじゃないとエラーが出る？
+import {ScriptTag} from '@shopify/shopify-api/dist/rest-resources/2022-10/index.js';
 
 //11/23 app_proxyの認証のため追記
 import { verifySignature } from "./utils/app_proxy.js";
